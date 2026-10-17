@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KununFilm - Platform Nonton Film, Anime & TV Series</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            red: '#E50914',
+                            dark: '#141414',
+                            card: '#181818',
+                            hover: '#282828'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-short': 'bounce 1s ease-in-out 1'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #141414;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        /* Scrollbar Netflix Style */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141414;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E50914;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Movie Card Scale Effects */
+        .movie-card {
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+        }
+        .movie-card:hover {
+            transform: scale(1.05) translateY(-5px);
+            z-index: 20;
+            box-shadow: 0 10px 25px -5px rgba(229, 9, 20, 0.4);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-red selection:text-white">
+
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-b from-black/95 via-black/60 to-transparent px-4 md:px-12 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-8">
+            <!-- Brand Logo -->
+            <a href="#" onclick="switchTab('home')" class="flex items-center space-x-1.5 text-2xl md:text-3xl font-black text-brand-red tracking-wider hover:scale-105 transition duration-300">
+                <i class="fa-solid fa-play-circle text-brand-red animate-pulse"></i>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-red-600 via-red-500 to-amber-500">KUNUNFILM</span>
+            </a>
+            
+            <!-- Desktop Nav Links -->
+            <ul class="hidden md:flex space-x-6 text-sm font-medium text-gray-300">
+                <li><button onclick="switchTab('home')" id="nav-home" class="hover:text-white transition font-bold text-white">Beranda</button></li>
+                <li><button onclick="switchTab('movie')" id="nav-movie" class="hover:text-white transition">Film</button></li>
+                <li><button onclick="switchTab('tv')" id="nav-tv" class="hover:text-white transition">Acara TV</button></li>
+                <li><button onclick="switchTab('anime')" id="nav-anime" class="hover:text-white transition">Anime</button></li>
+                <li><button onclick="switchTab('trending')" id="nav-trending" class="hover:text-white transition">Populer</button></li>
+            </ul>
+        </div>
+
+        <!-- Search Bar & Actions -->
+        <div class="flex items-center space-x-3">
+            <!-- Search Box -->
+            <div class="relative">
+                <input type="text" id="searchInput" onkeyup="handleSearch(event)" placeholder="Cari film, anime, tv..." 
+                    class="bg-black/60 border border-gray-700 focus:border-brand-red text-white text-xs md:text-sm rounded-full pl-9 pr-4 py-2 w-32 sm:w-56 focus:w-64 transition-all duration-300 outline-none backdrop-blur-md">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+            </div>
+
+            <!-- API Status / Key Settings Button -->
+            <button onclick="toggleModal('apiModal')" title="Klik di sini untuk mengatur TMDB API Key" class="flex items-center space-x-1.5 px-3 py-1.5 bg-brand-red hover:bg-red-700 text-white rounded-full transition duration-300 border border-red-500/50 text-xs font-semibold shadow-lg animate-pulse">
+                <i class="fa-solid fa-key text-amber-300"></i>
+                <span class="inline" id="apiBadgeText">Atur TMDB API</span>
+            </button>
+        </div>
+    </nav>
+
+    <header id="heroSection" class="relative w-full h-[75vh] md:h-[85vh] bg-black overflow-hidden flex items-end pb-12">
+        <div class="absolute inset-0 z-0">
+            <div id="heroMediaContainer" class="w-full h-full relative">
+                <img id="heroBackdrop" class="w-full h-full object-cover opacity-60 transition-opacity duration-700" src="" alt="Hero Backdrop">
+                <div id="heroTrailerWrapper" class="absolute inset-0 hidden pointer-events-none">
+                    <iframe id="heroTrailerIframe" class="w-full h-full scale-125 border-none" src="" allow="autoplay; encrypted-media"></iframe>
+                </div>
+            </div>
+            <!-- Overlay Gradient for Netflix Visuals -->
+            <div class="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/60 to-transparent"></div>
+        </div>
+
+        <!-- Hero Content Information -->
+        <div class="relative z-10 px-4 md:px-12 max-w-3xl space-y-4 fade-in">
+            <span id="heroBadge" class="inline-block px-3 py-1 bg-brand-red text-white text-[10px] md:text-xs font-bold rounded-md tracking-widest uppercase shadow-md">
+                TREMENDOUS FEATURED
+            </span>
+            <h1 id="heroTitle" class="text-3xl md:text-6xl font-black text-white leading-tight drop-shadow-lg">
+                Memuat Film...
+            </h1>
+            <p id="heroOverview" class="text-gray-300 text-xs md:text-sm line-clamp-3 md:line-clamp-4 leading-relaxed max-w-2xl">
+                Menghubungkan ke API TMDB untuk mengambil rekomendasi film terbaru...
+            </p>
+            
+            <div class="flex items-center space-x-3 pt-2">
+                <button id="heroPlayBtn" onclick="" class="flex items-center space-x-2 bg-white text-black font-bold px-6 py-3 rounded-md hover:bg-brand-red hover:text-white transition duration-300 shadow-xl text-sm">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Nonton Sekarang</span>
+                </button>
+                <button id="heroInfoBtn" onclick="" class="flex items-center space-x-2 bg-gray-600/70 text-white font-semibold px-5 py-3 rounded-md hover:bg-gray-700 transition duration-300 backdrop-blur-md text-sm">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Info Detail</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow px-4 md:px-12 -mt-16 relative z-20 space-y-10 pb-16">
+
+        <!-- SEARCH RESULTS SECTION -->
+        <section id="searchResultsSection" class="hidden space-y-4 pt-16">
+            <h2 class="text-xl md:text-2xl font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-magnifying-glass text-brand-red"></i>
+                <span>Hasil Pencarian: <span id="searchQueryLabel" class="text-brand-red"></span></span>
+            </h2>
+            <div id="searchGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <!-- Search Result Items -->
+            </div>
+        </section>
+
+        <!-- MAIN CATEGORY CAROUSELS -->
+        <div id="categoryRows" class="space-y-10">
+
+            <!-- Trending Row -->
+            <section class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg md:text-xl font-bold hover:text-brand-red transition cursor-pointer flex items-center space-x-2">
+                        <i class="fa-solid fa-fire text-brand-red"></i>
+                        <span>Trending Minggu Ini</span>
+                    </h2>
+                </div>
+                <div id="rowTrending" class="flex space-x-4 overflow-x-auto no-scrollbar py-4 scroll-smooth min-h-[260px]">
+                    <!-- Dynamic Movie Cards -->
+                </div>
+            </section>
+
+            <!-- Popular Movies Row -->
+            <section class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg md:text-xl font-bold hover:text-brand-red transition cursor-pointer flex items-center space-x-2">
+                        <i class="fa-solid fa-film text-brand-red"></i>
+                        <span>Film Terpopuler</span>
+                    </h2>
+                </div>
+                <div id="rowPopularMovies" class="flex space-x-4 overflow-x-auto no-scrollbar py-4 scroll-smooth min-h-[260px]">
+                    <!-- Dynamic Movie Cards -->
+                </div>
+            </section>
+
+            <!-- Anime Row -->
+            <section class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg md:text-xl font-bold hover:text-brand-red transition cursor-pointer flex items-center space-x-2">
+                        <i class="fa-solid fa-dragon text-brand-red"></i>
+                        <span>Anime Terbaru & Populer</span>
+                    </h2>
+                </div>
+                <div id="rowAnime" class="flex space-x-4 overflow-x-auto no-scrollbar py-4 scroll-smooth min-h-[260px]">
+                    <!-- Dynamic Anime Cards -->
+                </div>
+            </section>
+
+            <!-- Series TV Row -->
+            <section class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg md:text-xl font-bold hover:text-brand-red transition cursor-pointer flex items-center space-x-2">
+                        <i class="fa-solid fa-tv text-brand-red"></i>
+                        <span>Serial TV Pilihan</span>
+                    </h2>
+                </div>
+                <div id="rowTVShows" class="flex space-x-4 overflow-x-auto no-scrollbar py-4 scroll-smooth min-h-[260px]">
+                    <!-- Dynamic TV Cards -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-black/80 border-t border-gray-800 py-8 px-4 text-center text-xs text-gray-500 space-y-3">
+        <p class="font-bold text-gray-400">&copy; 2026 KUNUNFILM. All Rights Reserved.</p>
+        <p class="max-w-xl mx-auto leading-relaxed">
+            Aplikasi ini terhubung langsung ke API TheMovieDB (TMDB) untuk katalog metadata dan VidLink / VidSrc untuk embed player video streaming.
+        </p>
+    </footer>
+
+    <div id="watchModal" class="fixed inset-0 z-50 bg-black/95 hidden flex flex-col justify-center items-center p-2 md:p-6 backdrop-blur-md">
+        <div class="w-full max-w-5xl bg-brand-card rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative flex flex-col max-h-[90vh]">
+            <!-- Player Header -->
+            <div class="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-gray-800">
+                <div class="flex items-center space-x-3">
+                    <span id="playerTitle" class="font-bold text-xs md:text-base text-white truncate max-w-xs md:max-w-md">Streaming Player</span>
+                    <select id="serverSelect" onchange="changeStreamingServer()" class="bg-gray-800 text-xs text-gray-200 border border-gray-700 rounded px-2 py-1 outline-none focus:border-brand-red">
+                        <option value="vidlink">Server Vidlink.pro</option>
+                        <option value="vidsrcpro">Server Vidsrc.pro</option>
+                        <option value="vidsrc">Server Vidsrc.me</option>
+                    </select>
+                </div>
+                <button onclick="closeWatchModal()" class="text-gray-400 hover:text-brand-red transition p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Video Player Iframe Container -->
+            <div class="relative w-full aspect-video bg-black flex items-center justify-center">
+                <iframe id="videoIframe" class="w-full h-full border-none" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+            </div>
+
+            <!-- TV Season / Episode Selector -->
+            <div id="tvControls" class="hidden p-3 bg-black/40 border-t border-gray-800 flex items-center space-x-4 text-xs">
+                <div class="flex items-center space-x-2">
+                    <label class="text-gray-400">Season:</label>
+                    <input type="number" id="seasonNum" min="1" value="1" onchange="updateTVStream()" class="w-14 bg-gray-800 text-white rounded px-2 py-1 border border-gray-700 text-center">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label class="text-gray-400">Episode:</label>
+                    <input type="number" id="episodeNum" min="1" value="1" onchange="updateTVStream()" class="w-14 bg-gray-800 text-white rounded px-2 py-1 border border-gray-700 text-center">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 z-50 bg-black/80 hidden flex justify-center items-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-brand-card w-full max-w-3xl rounded-2xl overflow-hidden border border-gray-800 shadow-2xl relative fade-in my-8">
+            <button onclick="toggleModal('detailModal')" class="absolute top-4 right-4 z-20 bg-black/60 hover:bg-brand-red text-white w-9 h-9 rounded-full flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="relative h-60 sm:h-80 w-full bg-black">
+                <img id="detailBackdrop" class="w-full h-full object-cover opacity-60" src="" alt="Detail Backdrop">
+                <div class="absolute inset-0 bg-gradient-to-t from-brand-card via-transparent to-transparent"></div>
+                <div class="absolute bottom-4 left-6 right-6 flex items-end justify-between">
+                    <div>
+                        <h2 id="detailTitle" class="text-2xl sm:text-4xl font-extrabold text-white">Title</h2>
+                        <p id="detailTagline" class="text-xs text-brand-red italic font-semibold mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-gray-300">
+                    <span id="detailRating" class="text-yellow-400 flex items-center gap-1">
+                        <i class="fa-solid fa-star"></i> 0.0
+                    </span>
+                    <span>•</span>
+                    <span id="detailRelease">2026</span>
+                    <span>•</span>
+                    <span id="detailGenres" class="bg-gray-800 px-2.5 py-1 rounded-full border border-gray-700">Genres</span>
+                </div>
+
+                <p id="detailOverview" class="text-gray-300 text-sm leading-relaxed">
+                    Overview details...
+                </p>
+
+                <!-- Trailer Section -->
+                <div class="pt-2">
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">Trailer Resmi YouTube:</h3>
+                    <div class="aspect-video w-full rounded-lg overflow-hidden bg-black border border-gray-800">
+                        <iframe id="detailTrailerIframe" class="w-full h-full border-none" src="" allowfullscreen></iframe>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button id="detailWatchBtn" onclick="" class="bg-brand-red hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Mulai Nonton</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="apiModal" class="fixed inset-0 z-50 bg-black/85 hidden flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-brand-card w-full max-w-lg rounded-2xl p-6 border border-gray-800 shadow-2xl relative space-y-5">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-key text-amber-400"></i> Pengaturan TMDB API Key
+                </h3>
+                <button onclick="toggleModal('apiModal')" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="text-xs text-gray-300 space-y-3 leading-relaxed">
+                <div class="p-3 bg-brand-red/10 border border-brand-red/30 rounded-lg text-red-200">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-circle-exclamation text-amber-400"></i> Dimana Memasukkan API Key?</p>
+                    <p>Masukkan kode TMDB API Key Anda pada kolom di bawah ini lalu klik tombol <strong>"Simpan API Key"</strong>. Sistem akan menyimpannya secara otomatis.</p>
+                </div>
+
+                <div class="bg-gray-900/80 p-3 rounded-lg border border-gray-800 space-y-1.5">
+                    <p class="font-bold text-amber-400"><i class="fa-solid fa-circle-info"></i> Cara Mendapatkan TMDB API Key Gratis:</p>
+                    <ol class="list-decimal list-inside space-y-1 text-gray-400">
+                        <li>Buka website resmi <a href="https://www.themoviedb.org/signup" target="_blank" class="text-white underline font-semibold">TheMovieDB.org</a> dan buat akun gratis.</li>
+                        <li>Masuk ke profil Anda -> Pilih <strong>Account Settings</strong> -> Menu <strong>API</strong>.</li>
+                        <li>Klik <strong>Create / Request API Key (Developer)</strong>.</li>
+                        <li>Salin kode <strong>API Key (v3 auth)</strong> (berisi 32 karakter huruf & angka) dan tempel di bawah.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-gray-300 flex justify-between">
+                    <span>Tempelkan TMDB API Key Anda di Sini:</span>
+                    <span id="activeKeyType" class="text-brand-red font-normal">Standard Fallback</span>
+                </label>
+                <input type="text" id="apiKeyInput" placeholder="Contoh: 841280f2b3b0cb0e3c88019688583e74" class="w-full bg-gray-900 border border-gray-700 focus:border-brand-red text-white rounded-lg p-3 text-xs outline-none tracking-wide font-mono">
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="resetApiKey()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-xs rounded-lg text-gray-300 font-semibold">Gunakan Default</button>
+                <button onclick="saveApiKey()" class="px-5 py-2 bg-brand-red hover:bg-red-700 text-xs rounded-lg text-white font-semibold shadow-md">Simpan API Key</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LIST OF FALLBACK API KEYS (Jika Anda ingin ganti API Key permanen di file kodenya)
+        const FALLBACK_API_KEYS = [
+            "841280f2b3b0cb0e3c88019688583e74",
+            "3fd2be6f0cd020109b17342d6191397e",
+            "c19f563ff4f5ad4fb91e0a9d18f0cb68"
+        ];
+
+        let currentKeyIndex = 0;
+        let customApiKey = localStorage.getItem('kunun_tmdb_key') || "";
+        const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+        const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+        const BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/original";
+
+        let currentPlayingMedia = { id: null, type: 'movie' };
+        let activeServer = 'vidlink';
+
+        function getActiveApiKey() {
+            return customApiKey.trim() !== "" ? customApiKey : FALLBACK_API_KEYS[currentKeyIndex];
+        }
+
+        // INITIALIZATION
+        window.onload = function () {
+            document.getElementById('apiKeyInput').value = customApiKey || getActiveApiKey();
+            updateApiBadge();
+            loadHeroFeatured();
+            loadCategoryRows();
+            setupNavbarScroll();
+        };
+
+        function updateApiBadge() {
+            const badgeText = document.getElementById('apiBadgeText');
+            const keyLabel = document.getElementById('activeKeyType');
+            if(customApiKey) {
+                badgeText.innerText = "Custom API";
+                keyLabel.innerText = "Custom User Key";
+            } else {
+                badgeText.innerText = `API Key #${currentKeyIndex + 1}`;
+                keyLabel.innerText = "Default Shared Key";
+            }
+        }
+
+        // API KEY MANAGEMENT
+        function saveApiKey() {
+            const inputVal = document.getElementById('apiKeyInput').value.trim();
+            if(inputVal) {
+                customApiKey = inputVal;
+                localStorage.setItem('kunun_tmdb_key', inputVal);
+                updateApiBadge();
+                alert("API Key berhasil disimpan!");
+                toggleModal('apiModal');
+                location.reload();
+            }
+        }
+
+        function resetApiKey() {
+            customApiKey = "";
+            localStorage.removeItem('kunun_tmdb_key');
+            currentKeyIndex = 0;
+            document.getElementById('apiKeyInput').value = FALLBACK_API_KEYS[0];
+            updateApiBadge();
+            alert("API Key dikembalikan ke default!");
+            toggleModal('apiModal');
+            location.reload();
+        }
+
+        // TMDB FETCH WRAPPER WITH AUTOMATIC FALLBACK
+        async function fetchTMDB(endpoint, params = "") {
+            let keyToUse = getActiveApiKey();
+            try {
+                const res = await fetch(`${TMDB_BASE_URL}${endpoint}?api_key=${keyToUse}&language=id-ID${params}`);
+                if (!res.ok) {
+                    // Try next fallback key if custom key isn't set
+                    if (!customApiKey && currentKeyIndex < FALLBACK_API_KEYS.length - 1) {
+                        currentKeyIndex++;
+                        updateApiBadge();
+                        return fetchTMDB(endpoint, params);
+                    }
+                    throw new Error(`TMDB HTTP error! status: ${res.status}`);
+                }
+                return await res.json();
+            } catch(err) {
+                console.error("Fetch Error TMDB:", err);
+                return null;
+            }
+        }
+
+        // NAVBAR SCROLL EFFECT
+        function setupNavbarScroll() {
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('bg-black/95', 'shadow-2xl');
+                } else {
+                    navbar.classList.remove('bg-black/95', 'shadow-2xl');
+                }
+            });
+        }
+
+        // NAVIGATION SWITCHER
+        function switchTab(tab) {
+            document.getElementById('searchResultsSection').classList.add('hidden');
+            document.getElementById('categoryRows').classList.remove('hidden');
+            
+            if(tab === 'home') {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            } else if(tab === 'movie') {
+                document.getElementById('rowPopularMovies').scrollIntoView({behavior: 'smooth'});
+            } else if(tab === 'tv') {
+                document.getElementById('rowTVShows').scrollIntoView({behavior: 'smooth'});
+            } else if(tab === 'anime') {
+                document.getElementById('rowAnime').scrollIntoView({behavior: 'smooth'});
+            } else if(tab === 'trending') {
+                document.getElementById('rowTrending').scrollIntoView({behavior: 'smooth'});
+            }
+        }
+
+        // HERO FEATURED MOVIE + TRAILER AUTOPLAY
+        async function loadHeroFeatured() {
+            const data = await fetchTMDB('/trending/movie/week');
+            if(!data || !data.results || data.results.length === 0) return;
+
+            const featured = data.results[0];
+            document.getElementById('heroTitle').innerText = featured.title || featured.name;
+            document.getElementById('heroOverview').innerText = featured.overview || "Tidak ada deskripsi rinci untuk film ini.";
+            document.getElementById('heroBackdrop').src = BACKDROP_BASE_URL + featured.backdrop_path;
+
+            document.getElementById('heroPlayBtn').onclick = () => openWatchModal(featured.id, 'movie', featured.title || featured.name);
+            document.getElementById('heroInfoBtn').onclick = () => openDetailModal(featured.id, 'movie');
+
+            // Autoplay YouTube Trailer
+            const videoData = await fetchTMDB(`/movie/${featured.id}/videos`);
+            if(videoData && videoData.results) {
+                const trailer = videoData.results.find(v => v.type === "Trailer" && v.site === "YouTube");
+                if(trailer) {
+                    setTimeout(() => {
+                        const iframe = document.getElementById('heroTrailerIframe');
+                        iframe.src = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailer.key}`;
+                        document.getElementById('heroTrailerWrapper').classList.remove('hidden');
+                    }, 2500);
+                }
+            }
+        }
+
+        // LOAD CATEGORIES ROWS
+        async function loadCategoryRows() {
+            // 1. Trending
+            const trending = await fetchTMDB('/trending/all/week');
+            renderRow('rowTrending', trending?.results || [], 'mixed');
+
+            // 2. Movies
+            const movies = await fetchTMDB('/movie/popular');
+            renderRow('rowPopularMovies', movies?.results || [], 'movie');
+
+            // 3. Anime
+            const anime = await fetchTMDB('/discover/tv', '&with_genres=16&with_original_language=ja');
+            renderRow('rowAnime', anime?.results || [], 'tv');
+
+            // 4. Series
+            const tvs = await fetchTMDB('/tv/popular');
+            renderRow('rowTVShows', tvs?.results || [], 'tv');
+        }
+
+        // RENDER ROW OF MOVIE CARDS
+        function renderRow(elementId, items, defaultType) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = "";
+
+            if(items.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-xs py-10">Gagal memuat konten. Periksa API Key TMDB.</p>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const type = item.media_type || defaultType;
+                const title = item.title || item.name;
+                const poster = item.poster_path ? IMAGE_BASE_URL + item.poster_path : "https://placehold.co/300x450/181818/FFF?text=No+Poster";
+                const rating = item.vote_average ? item.vote_average.toFixed(1) : "N/A";
+
+                const cardHtml = `
+                    <div onclick="openDetailModal(${item.id}, '${type}')" class="movie-card flex-none w-36 sm:w-48 bg-brand-card rounded-xl overflow-hidden cursor-pointer border border-gray-800/80 group">
+                        <div class="relative aspect-[2/3] bg-gray-900 overflow-hidden">
+                            <img class="w-full h-full object-cover group-hover:scale-110 transition duration-500" src="${poster}" alt="${title}" loading="lazy">
+                            <div class="absolute top-2 right-2 bg-black/75 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-yellow-400 flex items-center gap-1">
+                                <i class="fa-solid fa-star text-[9px]"></i> ${rating}
+                            </div>
+                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                                <div class="w-12 h-12 bg-brand-red rounded-full flex items-center justify-center shadow-xl text-white transform group-hover:scale-110 transition">
+                                    <i class="fa-solid fa-play text-lg ml-0.5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-3 space-y-1">
+                            <h3 class="text-xs sm:text-sm font-semibold text-white truncate group-hover:text-brand-red transition">${title}</h3>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider">${type === 'tv' ? 'Series / Anime' : 'Movie'}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // SEARCH FUNCTION
+        let searchTimeout = null;
+        function handleSearch(e) {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+
+            if(query.length < 2) {
+                document.getElementById('searchResultsSection').classList.add('hidden');
+                document.getElementById('categoryRows').classList.remove('hidden');
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                const data = await fetchTMDB('/search/multi', `&query=${encodeURIComponent(query)}`);
+                const results = data?.results || [];
+
+                document.getElementById('searchQueryLabel').innerText = query;
+                document.getElementById('searchResultsSection').classList.remove('hidden');
+                document.getElementById('categoryRows').classList.add('hidden');
+
+                const searchGrid = document.getElementById('searchGrid');
+                searchGrid.innerHTML = "";
+
+                if(results.length === 0) {
+                    searchGrid.innerHTML = `<p class="col-span-full text-gray-400 text-xs">Tidak ada hasil untuk "${query}".</p>`;
+                    return;
+                }
+
+                results.filter(r => r.media_type !== 'person').forEach(item => {
+                    const type = item.media_type || 'movie';
+                    const title = item.title || item.name;
+                    const poster = item.poster_path ? IMAGE_BASE_URL + item.poster_path : "https://placehold.co/300x450/181818/FFF?text=No+Poster";
+                    const rating = item.vote_average ? item.vote_average.toFixed(1) : "N/A";
+
+                    searchGrid.innerHTML += `
+                        <div onclick="openDetailModal(${item.id}, '${type}')" class="movie-card bg-brand-card rounded-xl overflow-hidden cursor-pointer border border-gray-800">
+                            <div class="relative aspect-[2/3] bg-gray-900">
+                                <img class="w-full h-full object-cover" src="${poster}" alt="${title}">
+                                <div class="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-yellow-400">
+                                    ★ ${rating}
+                                </div>
+                            </div>
+                            <div class="p-2.5">
+                                <h3 class="text-xs font-semibold text-white truncate">${title}</h3>
+                                <p class="text-[10px] text-gray-400 uppercase">${type}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }, 400);
+        }
+
+        // OPEN DETAIL MODAL
+        async function openDetailModal(id, type) {
+            const data = await fetchTMDB(`/${type}/${id}`);
+            if(!data) return;
+
+            document.getElementById('detailTitle').innerText = data.title || data.name;
+            document.getElementById('detailTagline').innerText = data.tagline ? `"${data.tagline}"` : "";
+            document.getElementById('detailOverview').innerText = data.overview || "Deskripsi belum tersedia dalam Bahasa Indonesia.";
+            document.getElementById('detailBackdrop').src = BACKDROP_BASE_URL + (data.backdrop_path || data.poster_path);
+            document.getElementById('detailRating').innerHTML = `<i class="fa-solid fa-star"></i> ${data.vote_average ? data.vote_average.toFixed(1) : 'N/A'}`;
+            document.getElementById('detailRelease').innerText = data.release_date || data.first_air_date || 'N/A';
+            document.getElementById('detailGenres').innerText = data.genres ? data.genres.map(g => g.name).join(', ') : 'Umum';
+
+            document.getElementById('detailWatchBtn').onclick = () => {
+                toggleModal('detailModal');
+                openWatchModal(id, type, data.title || data.name);
+            };
+
+            const videoData = await fetchTMDB(`/${type}/${id}/videos`);
+            const iframe = document.getElementById('detailTrailerIframe');
+            if(videoData && videoData.results) {
+                const trailer = videoData.results.find(v => v.type === "Trailer" && v.site === "YouTube") || videoData.results[0];
+                if(trailer) {
+                    iframe.src = `https://www.youtube.com/embed/${trailer.key}`;
+                } else {
+                    iframe.src = "";
+                }
+            } else {
+                iframe.src = "";
+            }
+
+            toggleModal('detailModal');
+        }
+
+        // STREAMING MODAL & EMBEDS
+        function openWatchModal(id, type, title) {
+            currentPlayingMedia = { id, type };
+            document.getElementById('playerTitle').innerText = `Nonton: ${title}`;
+
+            const tvControls = document.getElementById('tvControls');
+            if(type === 'tv') {
+                tvControls.classList.remove('hidden');
+                document.getElementById('seasonNum').value = 1;
+                document.getElementById('episodeNum').value = 1;
+            } else {
+                tvControls.classList.add('hidden');
+            }
+
+            updateStreamUrl();
+            document.getElementById('watchModal').classList.remove('hidden');
+        }
+
+        function closeWatchModal() {
+            document.getElementById('watchModal').classList.add('hidden');
+            document.getElementById('videoIframe').src = "";
+        }
+
+        function changeStreamingServer() {
+            activeServer = document.getElementById('serverSelect').value;
+            updateStreamUrl();
+        }
+
+        function updateTVStream() {
+            updateStreamUrl();
+        }
+
+        function updateStreamUrl() {
+            const { id, type } = currentPlayingMedia;
+            const season = document.getElementById('seasonNum').value || 1;
+            const episode = document.getElementById('episodeNum').value || 1;
+            const iframe = document.getElementById('videoIframe');
+
+            let embedUrl = "";
+
+            if (activeServer === 'vidlink') {
+                if (type === 'movie') {
+                    embedUrl = `https://vidlink.pro/movie/${id}`;
+                } else {
+                    embedUrl = `https://vidlink.pro/tv/${id}/${season}/${episode}`;
+                }
+            } else if (activeServer === 'vidsrcpro') {
+                if (type === 'movie') {
+                    embedUrl = `https://vidsrc.pro/embed/movie/${id}`;
+                } else {
+                    embedUrl = `https://vidsrc.pro/embed/tv/${id}/${season}/${episode}`;
+                }
+            } else if (activeServer === 'vidsrc') {
+                if (type === 'movie') {
+                    embedUrl = `https://vidsrc.me/embed/movie?tmdb=${id}`;
+                } else {
+                    embedUrl = `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
+                }
+            }
+
+            iframe.src = embedUrl;
+        }
+
+        // TOGGLE MODAL
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+                if(modalId === 'detailModal') {
+                    document.getElementById('detailTrailerIframe').src = "";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
